@@ -1,71 +1,96 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BTS TELKOMSEL</title>
-
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peta BTS Telkomsel</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html, body {
+    body, html {
       height: 100%;
       margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
+      padding: 0;
     }
-
-    header {
-      background-color: #d50000;
-      color: white;
-      text-align: center;
-      padding: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-
     #map {
+      height: 100vh;
       width: 100%;
-      height: calc(100% - 60px);
+    }
+    #toMarkerBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #d50000;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #toMarkerBtn:hover {
+      background: #b00000;
     }
   </style>
 </head>
 <body>
-  <header>BTS TELKOMSEL</header>
+
+  <button id="toMarkerBtn">Klik di sini</button>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <!-- Plugin untuk membaca file KML -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
-
   <script>
     // Inisialisasi peta
-    var map = L.map('map').setView([-5.38999245, 138.72190524], 8);
-
-    // Tambahkan layer dasar (OpenStreetMap)
+    var map = L.map('map').setView([-5.3899, 138.7219], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Gunakan Raw.Githack agar file KML bisa dimuat tanpa error CORS
-    var kmlUrl = 'https://rawcdn.githack.com/komdigiasmat-alt/lokasi/main/lokasi.kml';
+    // URL file KML dari repo GitHub (pakai rawcdn.githack)
+    var kmlUrl = 'https://rawcdn.githack.com/komdigiasmat-alt/bts-di-bangun-telkomsel/main/bts-di-bangun-telkomsel.kml';
 
-    // Tambahkan file KML ke peta
-    omnivore.kml(kmlUrl)
+    var featureMarkers = [];
+
+    // Load file KML
+    var kmlLayer = omnivore.kml(kmlUrl)
       .on('ready', function() {
         map.fitBounds(this.getBounds());
+        this.eachLayer(function(layer) {
+          var latlng;
+          if (layer.getLatLng) latlng = layer.getLatLng();
+          else if (layer.getBounds) latlng = layer.getBounds().getCenter();
+
+          if (latlng) {
+            featureMarkers.push(latlng);
+            L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: "#ff0000",
+              color: "#fff",
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.9
+            }).addTo(map);
+          }
+        });
       })
-      .on('error', function() {
-        alert("⚠️ Gagal memuat file KML. Pastikan lokasi.kml sudah benar di repo.");
+      .on('error', function(e){
+        alert('Gagal memuat file KML. Pastikan file KML bisa diakses publik.');
+        console.error(e);
       })
       .addTo(map);
+
+    // Fungsi tombol klik
+    document.getElementById('toMarkerBtn').addEventListener('click', function() {
+      if (featureMarkers.length > 0) {
+        map.flyTo(featureMarkers[0], 15, {duration: 1.5});
+      } else {
+        alert('Belum ada lokasi yang terbaca dari file KML.');
+      }
+    });
   </script>
+
 </body>
 </html>
